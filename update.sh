@@ -156,33 +156,22 @@ done
 
 tmpnixpath="nixpkgs=$(nix-instantiate --eval --json ./nixpkgs/nixos-unstable/default.nix | jq -r .)"
 
-for p in pkgs/*; do
-  update "pkgs" "${p}"
-done
-
-echo "============================================================================"
-
-if [[ "${CI_BUILD:-}" == "sr.ht" ]]; then
-  echo -e "${commitmsg::-1}" > .ci/commit-message
-  echo "summary: updated packages: ${up}" &>/dev/stderr
-  echo "summary: commit msg: ${commitmsg::-1}" &>/dev/stderr
-  if (( ${up} <= 0 )); then
-    echo "summary: refusing to proceed, no packages were updated." &>/dev/stderr
-    exit 0
-  fi
-fi
-
-echo "============================================================================"
-
-update_readme
+#for p in pkgs/*; do
+#  update "pkgs" "${p}"
+#done
+#
+#update_readme
 
 set -x
 
-cachix push -w "${cache}" &
-CACHIX_PID="$!"
-trap "kill ${CACHIX_PID}" EXIT
+#cachix push -w "${cache}" &
+#CACHIX_PID="$!"
+#trap "kill ${CACHIX_PID}" EXIT
 
-./nixbuild.sh build.nix \
-  --no-out-link --keep-going \
-  | cachix push "${cache}"
-
+pwd
+nix-build-uncached -build-flags "\
+  --option \"extra-binary-caches\" \"https://cache.nixos.org https://colemickens.cachix.org https://nixpkgs-wayland.cachix.org\" \
+  --option \"trusted-public-keys\" \"cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= colemickens.cachix.org-1:oIGbn9aolUT2qKqC78scPcDL6nz7Npgotu644V4aGl4= nixpkgs-wayland.cachix.org-1:3lwxaILxMRkVhehr5StQprHdEo4IrE8sRho9R9HOLYA=\" \
+  --option \"build-cores\" \"0\" \
+  --option \"narinfo-cache-negative-ttl\" \"0\" \
+  --keep-going " build.nix
